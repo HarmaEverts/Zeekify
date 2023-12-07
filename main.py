@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
 import sys
 
 from ui_zeekify import Ui_MainWindow
+from nltk.corpus import wordnet as wn
 
 
 replacements = {'I am': 'Thy art', 
@@ -50,6 +51,7 @@ class MainWindow(QMainWindow):
 
         self.ui.button_Zeekify.clicked.connect(self.zeekify)
         self.ui.button_Copy.clicked.connect(self.copy_to_clipboard)
+        self.ui.text_Source.textChanged.connect(self.update_source_text)
 
     def zeekify(self):
         self.update_source_text
@@ -57,13 +59,28 @@ class MainWindow(QMainWindow):
         
         # Zeekify
         for original, replacement in replacements.items():
-            self.replace_expressions(original, replacement)
+            self.converted_text = self.replace_expressions(original, replacement)
+
+        self.replace_verbs()
 
         self.ui.text_Converted.setText(self.converted_text)
         
     def replace_expressions(self, original, replacement):
         # Find the original expression and replace it with the replacement.
-        self.source_text.replace(original, replacement)
+        result = self.converted_text.replace(original, replacement)
+        return result
+
+    def replace_verbs(self):
+        # Add each word in the converted_text to a list.
+        words = self.converted_text.split()
+        for w in words:
+            tmp = wn.synsets(w)[0].pos()
+            if tmp == 'v':
+                if tmp[-1] == 'e':
+                    tmp[-1] = 'ith'
+                else:
+                    tmp = tmp + 'ith'
+        self.converted_text = " ".join(words)
 
     def update_source_text(self):
         self.source_text = self.ui.text_Source.toPlainText()
@@ -72,7 +89,10 @@ class MainWindow(QMainWindow):
         self.converted_text = self.ui.text_Converted.toPlainText()
 
     def copy_to_clipboard(self):
-        print("copying to clipboard")
+        cb = QApplication.clipboard()
+        cb.clear(mode=cb.Clipboard)
+        cb.setText(self.converted_text, mode=cb.Clipboard)
+        # Text is now already in the clipboard, no need for further actions.
 
 
 if __name__ == "__main__":
